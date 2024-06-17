@@ -1,34 +1,36 @@
 import { Redis } from "../databases/redis";
-import { CustomerShopping } from "../entities/customer-shopping";
-import { Customer } from "../entities/customer";
-import { People } from "../entities/people";
-import { Shopping } from "../entities/shopping";
+import { Recommendation } from "../entities/recommendation";
+import { LoadCustomersUseCase } from "./load-customers.usecase";
+import { LoadShoppingsUseCase } from "./load-shoppings.usecase";
+import { LoadPeoplesUseCase } from "./load-peoples.usecase";
 
 export const ReplicateDataOnRedisUseCase = {
-  async execute(
-    customers: Customer[],
-    peoples: People[],
-    shoppings: Shopping[]
-  ) {
+  async execute() {
+    const customers = await LoadCustomersUseCase.execute();
+    const shoppings = await LoadShoppingsUseCase.execute();
+    const peoples = await LoadPeoplesUseCase.execute();
+
     Redis.deleteAll();
 
     customers.forEach((customer) => {
       const people = peoples.find((people) => people.cpf === customer.cpf);
-      people?.friends.map((friend) => {
-        shoppings
-          .filter((shopping) => shopping.idCustomer === customer.id)
-          .map(async (shopping) => {
-            const customerShopping = new CustomerShopping(
-              customer.id,
-              customer.name,
-              friend.name,
-              shopping.product,
-              shopping.value
-            );
 
-            const dataString = JSON.stringify(customerShopping);
-            await Redis.set(`customer_${customer.id}`, dataString);
-          });
+      console.log(people?.friends);
+
+      const customerShoppings = shoppings.filter(
+        (shopping) => shopping.idCustomer === customer.id
+      );
+
+      people?.friends.map(async (friend) => {
+        const recommendation = new Recommendation(
+          customer.id,
+          customer.name,
+          friend.name,
+          customerShoppings
+        );
+
+        const dataString = JSON.stringify(recommendation);
+        await Redis.set(`${customer.id}_${friend._id}`, dataString);
       });
     });
   },

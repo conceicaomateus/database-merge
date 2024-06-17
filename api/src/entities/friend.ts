@@ -1,4 +1,5 @@
 export class Friend {
+  _id!: string;
   name: string;
   cpf: string;
   email: string;

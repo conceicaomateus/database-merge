@@ -18,11 +18,22 @@ export const Redis = {
     return result === 1;
   },
 
-  async delete(key: string) {
-    await client.del(key);
-  },
-
   async deleteAll() {
     await client.flushAll();
+  },
+
+  async getAll<T>() {
+    let data: Array<T> = [];
+
+    const keys = await client.keys("*");
+
+    for (const key of keys) {
+      const value = await client.get(key);
+      if (!value) continue;
+
+      data.push(JSON.parse(value));
+    }
+
+    return data;
   },
 };
